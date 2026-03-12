@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>WebSocket terning-demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 0 16px;
+        }
+
+        .card {
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        button {
+            padding: 12px 18px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #dice {
+            font-size: 80px;
+            margin: 20px 0;
+        }
+
+        #log {
+            margin-top: 20px;
+            padding-left: 20px;
+        }
+
+        .status {
+            color: #555;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>Terning med WebSocket</h1>
+    <p class="status">Status: <span id="status">Forbinder...</span></p>
+    <p>Forbundne klienter: <span id="players">0</span></p>
+
+    <div id="dice">🎲</div>
+
+    <button id="rollBtn">Rul terning</button>
+
+    <h2>Historik</h2>
+    <ul id="log"></ul>
+</div>
+
+<script>
+    const statusEl = document.getElementById("status");
+    const playersEl = document.getElementById("players");
+    const diceEl = document.getElementById("dice");
+    const logEl = document.getElementById("log");
+    const rollBtn = document.getElementById("rollBtn");
+
+    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+    const socket = new WebSocket(`${protocol}//${location.host}/ws/dice`);
+
+    socket.addEventListener("open", () => {
+        statusEl.textContent = "Forbundet";
+    });
+
+    socket.addEventListener("close", () => {
+        statusEl.textContent = "Forbindelse lukket";
+    });
+
+    socket.addEventListener("message", (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "players") {
+            playersEl.textContent = data.count;
+        }
+
+        if (data.type === "roll") {
+            playersEl.textContent = data.playerCount;
+            diceEl.textContent = faceFromValue(data.value);
+
+            const li = document.createElement("li");
+            li.textContent = `Nogen rullede ${data.value}`;
+            logEl.prepend(li);
+        }
+    });
+
+    rollBtn.addEventListener("click", () => {
+        socket.send("roll");
+    });
+
+    function faceFromValue(value) {
+        const faces = {
+            1: "⚀",
+            2: "⚁",
+            3: "⚂",
+            4: "⚃",
+            5: "⚄",
+            6: "⚅"
+        };
+        return faces[value] || "🎲";
+    }
+</script>
+</body>
+</html>
